@@ -16,7 +16,23 @@ RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
 # Cài đặt Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Correct order:
+WORKDIR /var/www/html
 
+# 1. Copy composer files first
+COPY composer.json composer.lock ./
+
+# 2. Run composer install
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
+
+# 3. Copy the rest of the application
+COPY . .
+# Example of installing required extensions first
+RUN apt-get update && apt-get install -y libzip-dev zip \
+    && docker-php-ext-install zip pdo pdo_mysql
+
+RUN composer install --no-interaction ...
+RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 # Thiết lập thư mục làm việc
 WORKDIR /var/www/html
 
@@ -37,3 +53,4 @@ RUN a2enmod rewrite
 
 # Mở port 80
 EXPOSE 80
+
